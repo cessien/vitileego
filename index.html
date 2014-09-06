@@ -7,7 +7,12 @@
 		<script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
 		<script type="text/javascript" src="js/bootstrap.js"></script>
 		<script>
+			var VitileegoModule;
 			
+			function moduleInit(){
+				VitileegoModule = document.getElementById("vitilegocv");
+				console.log("vitileego module successfully loaded.");
+			}
 		</script>
 	<head>
 	<body>
@@ -43,7 +48,7 @@
 								<li class="dropdown" data-toggle="tooltip" data-placement="bottom" title="Configure spot threshold and grayscale settings. Changes made here are persistent between app sesssions.">
 										<a href="#" class="dropdown-toggle" data-toggle="dropdown">
 												<span class="glyphicon glyphicon-cog"></span> 
-												<strong>Options</strong>
+												<strong>&nbsp;Options</strong>
 												<span class="glyphicon glyphicon-chevron-down"></span>
 										</a>
 										<ul class="dropdown-menu">
@@ -74,10 +79,22 @@
 		<div class="container-fluid"> 
 			<div class="row">
 				<div class="col-md-9">
-					<div class="box"></div>
+					<div class="box">
+						<div id="viewport">
+							<!-- Load the opencv module-->
+							<embed id="vitileegocv" width=800 height=600 src="vitileego.nmf" type="application/x-pnacl" onload="moduleInit()"/>
+						</div>
+					</div>
 				</div>
 				<div class="col-md-3">
-					<div class="box"></div>
+					<div class="box">
+						<div id="sidestats">
+							<p>Legion count:</p>
+							<p class="big">37</p>
+							<p>Legion coverage:</p>
+							<p class="big">62.45%</p>
+						</div>
+					</div>
 				</div>
 			</div>
 			<div class="row">

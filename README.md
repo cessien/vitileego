@@ -12,3 +12,5 @@ To install and run it, simply search "vitileego" in the web store, install and r
 
 To build:
 -TODO
+
+License: GPL v2 license. See the license file.
