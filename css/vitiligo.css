@@ -65,10 +65,10 @@ body {
 }
 
 .box p {
-	color: #aaa;
+	color: #888;
 	padding: 5px;
 	padding-left: 15px;
-	font-size: 1.3em;
+	font-size: 1.8em;
 }
 
 .box p:first-of-type {
@@ -76,8 +76,8 @@ body {
 }
 
 .box .big {
-	font-size: 2.8em;
+	font-size: 4.8em;
 	font-weight: bold;
-	color: #555;
+	color: #ccc;
 	text-align: center;
 }

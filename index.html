@@ -10,8 +10,13 @@
 			var VitileegoModule;
 			
 			function moduleInit(){
-				VitileegoModule = document.getElementById("vitilegocv");
+				VitileegoModule = document.getElementById("vitileegocv");
+				VitileegoModule.addEventListener("message",handleMessage,true);
 				console.log("vitileego module successfully loaded.");
+			}
+			
+			function handleMessage(e){
+				console.log(e.data);
 			}
 		</script>
 	<head>
