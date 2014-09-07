@@ -6,19 +6,7 @@
 		<link type="text/css" href="css/vitiligo.css" media="all" rel="stylesheet" />
 		<script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
 		<script type="text/javascript" src="js/bootstrap.js"></script>
-		<script>
-			var VitileegoModule;
-			
-			function moduleInit(){
-				VitileegoModule = document.getElementById("vitileegocv");
-				VitileegoModule.addEventListener("message",handleMessage,true);
-				console.log("vitileego module successfully loaded.");
-			}
-			
-			function handleMessage(e){
-				console.log(e.data);
-			}
-		</script>
+		<script type="text/javascript" src="js/vitileego.js"></script>
 	<head>
 	<body>
 		<div class="navbar navbar-inverse" role="navigation">

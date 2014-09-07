@@ -1,7 +1,8 @@
 {
-  "name": "Hello World!",
-  "description": "My first Chrome App.",
-  "version": "0.1",
+  "name": "Vitileego",
+  "description": "A Chrome app for finding and measuring Vitiligo Legions on mice tails.",
+  "version": "0.8",
+	"offline_enabled": true,
   "manifest_version": 2,
   "app": {
     "background": {

@@ -1,7 +1,7 @@
 vitileego (September 2014)
 =========
 
-A chrome deployed app that looks for vitiligo legions on a rat tail.
+A chrome deployed app that looks for vitiligo legions on a mouse tail.
 
 This is designed to be used by the ____ research group at UMass Medical School.
 
