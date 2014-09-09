@@ -1,7 +1,7 @@
 NACL_SDK_ROOT = /Users/cessien/nacl_sdk/pepper_35
 
 # Project Build flags
-WARNINGS := -Wno-long-long -Wall -Wswitch-enum -pedantic -Werror
+WARNINGS := -Wno-long-long -Wall -Wswitch-enum -pedantic -Werror -Wextra
 CXXFLAGS := -pthread -std=gnu++98 $(WARNINGS)
 
 #
@@ -16,7 +16,7 @@ PNACL_TC_PATH := $(abspath $(NACL_SDK_ROOT)/toolchain/$(OSNAME)_pnacl)
 PNACL_CXX := $(PNACL_TC_PATH)/bin/pnacl-clang++
 PNACL_FINALIZE := $(PNACL_TC_PATH)/bin/pnacl-finalize
 CXXFLAGS := -I$(NACL_SDK_ROOT)/include
-LDFLAGS := -L$(NACL_SDK_ROOT)/lib/pnacl/Release -lppapi_cpp -lppapi
+LDFLAGS := -L$(NACL_SDK_ROOT)/lib/pnacl/Release -lppapi_cpp -lppapi -lopencv_core -lopencv_highgui -lz -lpng -ljpeg
 
 all: vitileegocv.pexe
 

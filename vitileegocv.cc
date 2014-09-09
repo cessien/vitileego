@@ -20,9 +20,7 @@
 #include "opencv2/ml/ml.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/contrib/contrib.hpp"
-#include "opencv2/core/core_c.h"
-#include "opencv2/highgui/highgui_c.h"
-#include "opencv2/imgproc/imgproc_c.h"
+
 
 class VitileegoCVEngine : public pp::Instance {
 	pp::Graphics2D context;
@@ -71,7 +69,7 @@ class VitileegoCVEngine : public pp::Instance {
 		if (!BindGraphics(context)) log("context wasn't binded");
 		
 		PP_ImageDataFormat format = pp::ImageData::GetNativeImageDataFormat();
-    image_data = pp::ImageData(this, format, size, false);
+    image_data = pp::ImageData(this, format, size, true);
 		
 		uint32_t* data = static_cast<uint32_t*>(image_data.data());
 		
@@ -79,20 +77,23 @@ class VitileegoCVEngine : public pp::Instance {
 		uint8_t opaque = 0;
 		
 		for (int i = 0; i < 800*600; i++) {
-			data[i] = 0xff000000;
+			data[i] = 0xffff0000;
 			//data[i] = (test << 24) | (test << 16) | (test << 8) | opaque;
 		}
 		
 		context.ReplaceContents(&image_data);
 		
-		render_loop(0);
+		//render_loop(0);
 		context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
+		
+		cv::Mat img = cv::imread("sample.jpg");
+		
 		log("OpenCV initialization complete");
 	}
 	
 	void render_loop(int32_t){
 		log("called");
-		context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
+		//context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
 	}
 	
 	private:
