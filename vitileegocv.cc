@@ -20,6 +20,9 @@
 #include "opencv2/ml/ml.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/contrib/contrib.hpp"
+#include "opencv2/core/core_c.h"
+#include "opencv2/imgproc/imgproc_c.h"
+#include "opencv2/highgui/highgui_c.h"
 
 
 class VitileegoCVEngine : public pp::Instance {
@@ -46,6 +49,7 @@ class VitileegoCVEngine : public pp::Instance {
 			if (fn == "init") { //initialize (or re-initialize) opencv
 				init();
 			} else if (fn == "open") { //open a specific file
+				open(messageJSON.Get("file").AsString());
 			}
 			
 		} else if (message.is_string()) { //Simple dummy test to respond
@@ -86,9 +90,27 @@ class VitileegoCVEngine : public pp::Instance {
 		//render_loop(0);
 		context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
 		
-		cv::Mat img = cv::imread("sample.jpg");
+		IplImage *img = cvLoadImage("sample.jpg",0);
+		cv::Mat image;
+		image = cv::imread("/Users/cessien/Desktop/vitileego/sample.jpg",CV_LOAD_IMAGE_COLOR);
+		//image = cvLoadImage("/Users/cessien/Desktop/vitileego/sample.jpg",CV_LOAD_IMAGE_COLOR);
+		char temp[4000];
+		//sprintf(temp,"%d",img->nChannels);
+		//log(std::string(temp));
+		/*
+		if( !image.empty() ) {
+			log("sample image successfully loaded");
+		} else {
+			log("Sample image was unable to be loaded");
+		}*/
 		
 		log("OpenCV initialization complete");
+	}
+	
+	/* open (std::string file)
+	 * open a file using as a resource using the string passed by the client.
+	 */
+	void open(std::string file) {
 	}
 	
 	void render_loop(int32_t){

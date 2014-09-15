@@ -81,3 +81,11 @@ body {
 	color: #ccc;
 	text-align: center;
 }
+
+.file-input {
+ 	padding: 5px 0px 5px 15px;
+}
+
+.loading-image {
+	display: none;
+}
