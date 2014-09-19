@@ -36,12 +36,19 @@ function loadPicture(e){
 			var elem = $("#loaded-image");
 			$(elem).attr("src",reader.result);
 			
+			//console.log(reader.result);
+			
+			//var result = reader.result.replace(/data:.*,/,"");
+			
+			var uarray = new Uint8Array(reader.result);
+			console.log(uarray);
+			VitileegoModule.postMessage({fn:"picture",picture:uarray});
 			$("#loading").hide();
-			elem.show();
+			//elem.show();
 		};
 		
       // Read in the image file as a data URL.
-    reader.readAsDataURL(file);
+    reader.readAsArrayBuffer(file);
 		
 		//$("#loading").attr("src",file);
 		//console.log(file.substring(file.indexOf("fakepath\\")+9) + " loaded.");

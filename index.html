@@ -74,17 +74,15 @@
 		<div class="container-fluid"> 
 			<div class="row">
 				<div class="col-md-9">
-					<div class="box">
-						<div id="viewport">
-							<!-- Load the opencv module-->
-							<embed id="vitileegocv" width=800 height=600 src="vitileego.nmf" type="application/x-pnacl" onload="moduleInit()"/>
-							<!-- Loading bar -->
-							<img src="720.GIF" width=800 id="loading" class="loading-image img-responsive"/>
-							
-							<img id="loaded-image" style="display:none;"/>
-						</div>
+					<div id="viewport">
+						<!-- Load the opencv module-->
+						<embed class="box" id="vitileegocv" width=800 height=600 src="vitileego.nmf" type="application/x-pnacl" onload="moduleInit()"/>
+						<!-- Loading bar -->
+						<img class="box" src="720.GIF" width=800 id="loading" class="loading-image img-responsive" style="display:none;"/>
+
+						<img id="loaded-image" style="display:none;"/>
 					</div>
-				</div>
+			</div>
 				<div class="col-md-3">
 					<div class="box">
 						<div id="sidestats">

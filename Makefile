@@ -1,4 +1,5 @@
 NACL_SDK_ROOT = /Users/cessien/nacl_sdk/pepper_35
+NACL_PLUGIN_DEBUG=1
 
 # Project Build flags
 WARNINGS := -Wno-long-long -Wall -Wswitch-enum -pedantic -Werror -Wextra
@@ -16,7 +17,7 @@ PNACL_TC_PATH := $(abspath $(NACL_SDK_ROOT)/toolchain/$(OSNAME)_pnacl)
 PNACL_CXX := $(PNACL_TC_PATH)/bin/pnacl-clang++
 PNACL_FINALIZE := $(PNACL_TC_PATH)/bin/pnacl-finalize
 CXXFLAGS := -I$(NACL_SDK_ROOT)/include
-LDFLAGS := -L$(NACL_SDK_ROOT)/lib/pnacl/Release -lppapi_cpp -lppapi -lopencv_core -lopencv_highgui -lpng -ljpeg -lz -lopencv_calib3d -lopencv_contrib -lopencv_features2d -lopencv_flann -lopencv_gpu -lopencv_imgproc -lopencv_legacy -lopencv_ml -lopencv_nonfree -lopencv_objdetect -lopencv_photo -lopencv_stitching -lopencv_superres -lopencv_ts -lopencv_video -lopencv_videostab
+LDFLAGS := -L$(NACL_SDK_ROOT)/lib/pnacl/Release -lppapi_cpp -lppapi -lopencv_core -lopencv_highgui -lpng -ljpeg -lz 
 
 all: vitileegocv.pexe
 

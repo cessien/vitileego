@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "ppapi/cpp/graphics_2d.h"
 #include "ppapi/cpp/instance.h"
 #include "ppapi/cpp/module.h"
@@ -23,7 +24,6 @@
 #include "opencv2/core/core_c.h"
 #include "opencv2/imgproc/imgproc_c.h"
 #include "opencv2/highgui/highgui_c.h"
-
 
 class VitileegoCVEngine : public pp::Instance {
 	pp::Graphics2D context;
@@ -50,6 +50,8 @@ class VitileegoCVEngine : public pp::Instance {
 				init();
 			} else if (fn == "open") { //open a specific file
 				open(messageJSON.Get("file").AsString());
+			} else if (fn == "picture") { //decode the picture
+				decode(messageJSON.Get("picture"));
 			}
 			
 		} else if (message.is_string()) { //Simple dummy test to respond
@@ -90,19 +92,24 @@ class VitileegoCVEngine : public pp::Instance {
 		//render_loop(0);
 		context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
 		
-		IplImage *img = cvLoadImage("sample.jpg",0);
 		cv::Mat image;
-		image = cv::imread("/Users/cessien/Desktop/vitileego/sample.jpg",CV_LOAD_IMAGE_COLOR);
-		//image = cvLoadImage("/Users/cessien/Desktop/vitileego/sample.jpg",CV_LOAD_IMAGE_COLOR);
-		char temp[4000];
-		//sprintf(temp,"%d",img->nChannels);
-		//log(std::string(temp));
-		/*
-		if( !image.empty() ) {
-			log("sample image successfully loaded");
-		} else {
+		image = cv::imread("sample.jpg");
+		
+		if( image.empty() ) {
 			log("Sample image was unable to be loaded");
-		}*/
+		} else {
+			log("sample image successfully loaded");
+		}
+
+		 char buff[10000];
+		 char *path = getcwd( buff, 10000 );
+		
+		 std::string cwd( buff );
+		
+		 log(cwd + std::string("Hi there"));
+
+		//cv::imwrite("432findmetoo.jpg",image);
+		
 		
 		log("OpenCV initialization complete");
 	}
@@ -111,6 +118,13 @@ class VitileegoCVEngine : public pp::Instance {
 	 * open a file using as a resource using the string passed by the client.
 	 */
 	void open(std::string file) {
+	}
+	
+	void decode(pp::Var picture) {
+		pp::VarArray pic(picture);
+		char buff[10000];
+		sprintf(buff,"test %d",pic.GetLength());
+		log(std::string(buff));
 	}
 	
 	void render_loop(int32_t){
