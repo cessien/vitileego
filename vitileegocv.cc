@@ -10,20 +10,7 @@
 #include "ppapi/cpp/image_data.h"
 #include "ppapi/utility/completion_callback_factory.h"
 
-#include "opencv2/core/core.hpp"
-#include "opencv2/flann/miniflann.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/photo/photo.hpp"
-#include "opencv2/video/video.hpp"
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/objdetect/objdetect.hpp"
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/ml/ml.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/contrib/contrib.hpp"
-#include "opencv2/core/core_c.h"
-#include "opencv2/imgproc/imgproc_c.h"
-#include "opencv2/highgui/highgui_c.h"
+#include "opencv2/opencv.hpp"
 
 class VitileegoCVEngine : public pp::Instance {
 	pp::Graphics2D context;
@@ -51,7 +38,7 @@ class VitileegoCVEngine : public pp::Instance {
 			} else if (fn == "open") { //open a specific file
 				open(messageJSON.Get("file").AsString());
 			} else if (fn == "picture") { //decode the picture
-				decode(messageJSON.Get("picture"));
+				decode(messageJSON.Get("picture").AsString(),messageJSON.Get("size").AsInt());
 			}
 			
 		} else if (message.is_string()) { //Simple dummy test to respond
@@ -62,6 +49,7 @@ class VitileegoCVEngine : public pp::Instance {
 		
 			PostMessage(reply);
 		} else { //Assume possible image_data
+			
 		}
 		
 
@@ -92,25 +80,6 @@ class VitileegoCVEngine : public pp::Instance {
 		//render_loop(0);
 		context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
 		
-		cv::Mat image;
-		image = cv::imread("sample.jpg");
-		
-		if( image.empty() ) {
-			log("Sample image was unable to be loaded");
-		} else {
-			log("sample image successfully loaded");
-		}
-
-		 char buff[10000];
-		 char *path = getcwd( buff, 10000 );
-		
-		 std::string cwd( buff );
-		
-		 log(cwd + std::string("Hi there"));
-
-		//cv::imwrite("432findmetoo.jpg",image);
-		
-		
 		log("OpenCV initialization complete");
 	}
 	
@@ -120,11 +89,36 @@ class VitileegoCVEngine : public pp::Instance {
 	void open(std::string file) {
 	}
 	
-	void decode(pp::Var picture) {
-		pp::VarArray pic(picture);
-		char buff[10000];
-		sprintf(buff,"test %d",pic.GetLength());
-		log(std::string(buff));
+	void decode(const std::string & pictureData,int size) {
+		const std::string code64 = pictureData;			
+		//const std::string code64("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAp1JREFUeNqEU21IU1EYfu7unW5Ty6aBszYs6MeUjGVYokHYyH5E1B9rZWFEFPQnAwmy6Hc/oqhfJsRKSSZGH1JIIX3MNCsqLTD9o1Oj6ebnnDfvvefezrnbdCHhCw/n433P8z7nPe/hBEEAtX0U7hc164uwuvVSXKwZLoOmaRDim+7m9vZa0WiEKSUFFpNpCWlmMyypqTDRuYn6t3k8vmQ2gRDCxs0t9fW45F52aBTROJLtZl7nEZad2m+KtoQCQ0FBARyOCGRZ/q92I1WgqqXlfdd95VsrK8/pChIEqqpCkiQsiCII0aBQZZoWl8lzFDwsFjMl0DBLY8Lj41hBwK4jSQrWOIphL6xYyhwJDWGo6wFSaH1Y3PTCAsITE1oyAa8flhWkbSiCLX8vun11eiGIpiJ/z2nYdx5HqLdVV7elrOzsuqysL3rmBIGiKPizKCHHWY4PLVeQbnXAdegqdhy+hu8dDTBnbqQJZJ1A7u+vz7RaiymWCZgCRSF6Edk8b9cx+B/W6WuVxPaZnyiqXoPpyUmVYvkKTIFClHigEieKjYuSvETUllaF4GAUM1NT6ooaJDKx+aDfC9fByxj90REb+9ppmIoAscH/6leg8MS9DJXPAM9xHCM443K57C6biMjcHDaVVCHw9RmCA2/RGC5C00AqXk/m4p20HZK4CM/J3Zk9n0ecMBhDQnJHcrTisyMfdQXOilrdMfxcwoHq/fg5R59TiQV3hYGKo6X2J/c7LyQIjOx9GXhOw/zoJ8wEevRGyp53o/lGMNYsBgPtEwLecwov7/jGDKa1twT6o3KpL4MdZgGsWZLtfPr7f1q58k1JNHy7YYaM+J+K3Y2PmAIbRavX66229hrGVvvL5uzsHDEUvUu+NT1my78CDAAMK1a8/QaZCgAAAABJRU5ErkJggg==");		
+		
+		std::vector<char> test(code64.begin(), code64.end());
+		
+		log(code64);
+											 
+		if(test.empty()){
+			log("hmm");
+		} else {
+			char buff[10000];
+			sprintf(buff,"fact: %i",test.size());
+			log(std::string(buff));
+		}
+	
+			cv::Mat image = cv::imdecode(cv::Mat(test), CV_LOAD_IMAGE_COLOR);
+
+
+			if( image.empty() ) {
+				log("Sample image was unable to be loaded");
+			} else {
+				log("sample image successfully loaded");
+			}
+
+		//pp::VarArray pic(picture);
+		/*char buff[10000];
+		sprintf(buff,"test %x | %i",picture[2],test.size());
+		log(std::string(buff));*/
+		
 	}
 	
 	void render_loop(int32_t){
