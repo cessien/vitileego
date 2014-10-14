@@ -38,7 +38,7 @@ class VitileegoCVEngine : public pp::Instance {
 			} else if (fn == "open") { //open a specific file
 				open(messageJSON.Get("file").AsString());
 			} else if (fn == "picture") { //decode the picture
-				decode(messageJSON.Get("picture"),messageJSON.Get("size").AsInt());
+				decode(messageJSON.Get("picture").AsString(),messageJSON.Get("size").AsInt());
 			}
 			
 
@@ -87,54 +87,54 @@ class VitileegoCVEngine : public pp::Instance {
 	void open(std::string file) {
 	}
 		
-	void decode(const pp::Var & pictureData,int size) {
-		if(pictureData.is_object()){
-			log("Im an array buffer!");
-		} else {
-			log("or not..");
+	void decode(std::string pictureData,int size) {
+		
+		std::string decoded_data = base64_decode(pictureData);
+		
+		const uint8_t * temp  = (uint8_t *)decoded_data.c_str();
+		
+		std::vector<uint8_t> input_data(decoded_data.size());
+		
+
+		for (uint32_t i = 0; i < decoded_data.size(); i++) {
+			//char buff[10000];
+			//sprintf(buff,"mark: %x",temp[i]);
+			input_data[i]=temp[i];
+			//log(std::string(buff));
 		}
 		
-		pp::VarArrayBuffer picArray(pictureData);			
-		std::vector<uint8_t> test(0);
+		/*for (uint32_t i = 0; i < input_data.size(); i++) {
+			char buff[10000];
+			sprintf(buff,"mark: %x",input_data[i]);
+			log(std::string(buff));
+		}*/
 		
-		char* data = static_cast<char*>(picArray.Map());
-		uint32_t byte_length = picArray.ByteLength();
-
-		//for (uint32_t i = 0; i < byte_length; i++) {
-			//test.push_back(data[1]);
-		//}
 		
-		char buff[10000];
-		sprintf(buff,"size?: %i %i",byte_length, size);
-		log(std::string(buff));
-		/*
-		if(test.empty()){
+		cv::Mat image = cv::imdecode(cv::Mat(input_data), CV_LOAD_IMAGE_COLOR);
+		
+		if(image.empty()){
 			log("hmm");
+			if(input_data.empty()) {log("with an extra hmmmmmmm");}
 		} else {
 			char buff[10000];
-			sprintf(buff,"fact: %x %x %x %x %x %x %x %x %x %x\n%x %x %x %x %x %x %x %x %x %x\n%x %x %x %x %x %x %x %x %x %x\n%x %x",test[0], test[1], test[2], test[3], test[4], test[5], test[6], test[7], test[8], test[9], test[10], test[11], test[12], test[13], test[14], test[15], test[16], test[17], test[18], test[19], test[20], test[21], test[22], test[23], test[24], test[25], test[26], test[27], test[28], test[29], test[30], test[31]);
-			log(std::string(buff));
-		} */
-		
-		/*									 
-		if(test.empty()){
-			log("hmm");
-		} else {
-			char buff[10000];
-			sprintf(buff,"fact: %x %x %x %x %x %x %x %x %x %x\n%x %x %x %x %x %x %x %x %x %x\n%x %x %x %x %x %x %x %x %x %x\n%x %x",test[0], test[1], test[2], test[3], test[4], test[5], test[6], test[7], test[8], test[9], test[10], test[11], test[12], test[13], test[14], test[15], test[16], test[17], test[18], test[19], test[20], test[21], test[22], test[23], test[24], test[25], test[26], test[27], test[28], test[29], test[30], test[31]);
-			log(std::string(buff));
+			//cv::Size s = 
+			sprintf(buff,"size: %i",image.total());
+			log(buff);
 		}
-	
-			cv::Mat image = cv::imdecode(cv::Mat(test), CV_LOAD_IMAGE_COLOR);
-
-
-			if( image.empty() ) {
-				log("Sample image was unable to be loaded");
-			} else {
-				log("sample image successfully loaded");
+		
+		uint32_t* data = static_cast<uint32_t*>(image_data.data());
+		
+		for (int x = 0; x < image.rows; x++) {
+			unsigned char * row = image.ptr(x);
+			for (int y = 0; y < image.cols*3; y++) {
+				char buff[10000];
+				sprintf(buff,"row %i col %i: %x",x,y,image.ptr(x * image.cols + y));
+				log(buff);
+				//data[x * image.cols + y];// = (test << 24) | (test << 16) | (test << 8) | opaque;
 			}
-*/
+		}
 		
+		context.ReplaceContents(&image_data);
 	}
 	
 	void render_loop(int32_t){
@@ -148,6 +148,56 @@ class VitileegoCVEngine : public pp::Instance {
 		reply.Set("type","log");
 		reply.Set("message",message);
 		PostMessage(reply);
+	}
+	
+	static inline bool is_base64(unsigned char c) {
+		return (isalnum(c) || (c == '+') || (c == '/'));
+	}
+	
+	std::string base64_decode(std::string const& encoded_string) {
+		const std::string base64_chars = 
+							 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+							 "abcdefghijklmnopqrstuvwxyz"
+							 "0123456789+/";
+
+		int in_len = encoded_string.size();
+		int i = 0;
+		int j = 0;
+		int in_ = 0;
+		unsigned char char_array_4[4], char_array_3[3];
+		std::string ret;
+
+		while (in_len-- && ( encoded_string[in_] != '=') && is_base64(encoded_string[in_])) {
+			char_array_4[i++] = encoded_string[in_]; in_++;
+			if (i ==4) {
+				for (i = 0; i <4; i++)
+					char_array_4[i] = base64_chars.find(char_array_4[i]);
+
+				char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
+				char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
+				char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
+
+				for (i = 0; (i < 3); i++)
+					ret += char_array_3[i];
+				i = 0;
+			}
+		}
+
+		if (i) {
+			for (j = i; j <4; j++)
+				char_array_4[j] = 0;
+
+			for (j = 0; j <4; j++)
+				char_array_4[j] = base64_chars.find(char_array_4[j]);
+
+			char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
+			char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
+			char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
+
+			for (j = 0; (j < i - 1); j++) ret += char_array_3[j];
+		}
+
+		return ret;
 	}
 };
 
