@@ -17,7 +17,7 @@ class VitileegoCVEngine : public pp::Instance {
 	pp::Size size;
 	pp::CompletionCallbackFactory<VitileegoCVEngine> callback_factory;
 	pp::ImageData image_data;
-	
+	uint32_t* data;
 	public:
 	explicit VitileegoCVEngine(PP_Instance instance) : pp::Instance(instance), callback_factory(this){}
 	virtual ~VitileegoCVEngine(){}
@@ -63,15 +63,18 @@ class VitileegoCVEngine : public pp::Instance {
 		PP_ImageDataFormat format = pp::ImageData::GetNativeImageDataFormat();
     image_data = pp::ImageData(this, format, size, true);
 		
-		uint32_t* data = static_cast<uint32_t*>(image_data.data());
+		data = static_cast<uint32_t*>(image_data.data());
 		
 		uint8_t test = 128;
 		uint8_t opaque = 0;
 		
 		for (int i = 0; i < 800*600; i++) {
-			data[i] = 0xffff0000;
+			// bitwise this data is separated into 4 bytes alpha|red|green|blue
+			data[i] = 0xff00ff00;
 			//data[i] = (test << 24) | (test << 16) | (test << 8) | opaque;
 		}
+		
+		printf("testing!!\n");
 		
 		context.ReplaceContents(&image_data);
 		
@@ -122,19 +125,25 @@ class VitileegoCVEngine : public pp::Instance {
 			log(buff);
 		}
 		
-		uint32_t* data = static_cast<uint32_t*>(image_data.data());
+		PP_ImageDataFormat format = pp::ImageData::GetNativeImageDataFormat();
+    image_data = pp::ImageData(this, format, pp::Size(800,600), true);
+		
+		data = static_cast<uint32_t*>(image_data.data());
 		
 		for (int x = 0; x < image.rows; x++) {
 			unsigned char * row = image.ptr(x);
-			for (int y = 0; y < image.cols*3; y++) {
-				char buff[10000];
-				sprintf(buff,"row %i col %i: %x",x,y,image.ptr(x * image.cols + y));
-				log(buff);
-				//data[x * image.cols + y];// = (test << 24) | (test << 16) | (test << 8) | opaque;
+			for (int y = 0; y < image.cols*3; y+=3) {
+				uint8_t b = *(row+(y+0));
+				uint8_t g = *(row+(y+1));
+				uint8_t r = *(row+(y+2));
+				data[x*800 + y/3] = (0xff << 24) | (r << 16) | (g << 8) | b;
+				//context.ReplaceContents(&image_data);
+				//context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
 			}
 		}
 		
 		context.ReplaceContents(&image_data);
+		context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
 	}
 	
 	void render_loop(int32_t){
