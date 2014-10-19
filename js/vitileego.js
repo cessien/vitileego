@@ -19,6 +19,10 @@ function handleMessage(e) {
 	} else console.error("No message returned.");
 }
 
+function update_all(){
+	console.log("called");
+}
+
 function loadPicture(e){
 	var file = $("#files")[0].files[0];
 	
@@ -38,3 +42,16 @@ function loadPicture(e){
 	// Read in the image file as a data URL.
 	reader.readAsDataURL(file);
 }
+
+$(document).ready(function(){
+	$("input").keyup(function(){
+		var data = {
+			fn:"adjust",
+			threshold: parseInt($('#threshold').val())|0,
+			ratio: parseInt($('#ratio').val())|1,
+			kernel_size: parseInt($('#kernel-size').val())|1
+		};
+		console.log(data);
+		VitileegoModule.postMessage(data);
+	});
+});

@@ -3,12 +3,14 @@
 	<head>
 		<title>vitileego</title>
 		<link type="text/css" href="css/bootstrap.min.css" media="all" rel="stylesheet" />
+		<link type="text/css" href="css/slider.css" media="all" rel="stylesheet" />
 		<link type="text/css" href="css/vitiligo.css" media="all" rel="stylesheet" />
 		<script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
 		<script type="text/javascript" src="js/bootstrap.js"></script>
+		<script type="text/javascript" src="js/bootstrap-slider.js"></script>
 		<script type="text/javascript" src="js/vitileego.js"></script>
 	<head>
-	<body>
+	<body oncontextmenu="return false">
 		<div class="navbar navbar-inverse" role="navigation">
 				<div class="navbar-header">
 						<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -42,8 +44,8 @@
 						<ul class="nav navbar-nav navbar-right">
 								<li class="dropdown" data-toggle="tooltip" data-placement="bottom" title="Configure spot threshold and grayscale settings. Changes made here are persistent between app sesssions.">
 										<a href="#" class="dropdown-toggle" data-toggle="dropdown">
-												<span class="glyphicon glyphicon-cog"></span> 
-												<strong>&nbsp;Options</strong>
+												<span class="glyphicon glyphicon-cog"></span>
+												<strong>Options</strong>
 												<span class="glyphicon glyphicon-chevron-down"></span>
 										</a>
 										<ul class="dropdown-menu">
@@ -90,6 +92,20 @@
 							<p class="big">37</p>
 							<p>Legion coverage:</p>
 							<p class="big">62.45%</p>
+							<form role="form">
+								<div class="form-group">
+									<label for="threshold">Threshold</label>
+									<input type="text" class="form-control"  onchange="update_all()" id="threshold" placeholder="1 - 100" value="10" />
+								</div>
+								<div class="form-group">
+									<label for="threshold">Ratio</label>
+									<input type="text" class="form-control"  onchange="update_all()" id="ratio" placeholder="ratio" value="250"/>
+								</div>
+								<div class="form-group">
+									<label for="threshold">Kernel Size</label>
+									<input type="text" class="form-control"  onchange="update_all()" id="kernel-size" placeholder="1 - 10 please" value="5"/>
+								</div>
+							</form>
 						</div>
 					</div>
 				</div>

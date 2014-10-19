@@ -17,7 +17,11 @@ class VitileegoCVEngine : public pp::Instance {
 	pp::Size size;
 	pp::CompletionCallbackFactory<VitileegoCVEngine> callback_factory;
 	pp::ImageData image_data;
+	PP_ImageDataFormat format;
 	uint32_t* data;
+	std::vector<uint8_t> input_data;
+	cv::Mat image;
+	
 	public:
 	explicit VitileegoCVEngine(PP_Instance instance) : pp::Instance(instance), callback_factory(this){}
 	virtual ~VitileegoCVEngine(){}
@@ -39,9 +43,12 @@ class VitileegoCVEngine : public pp::Instance {
 				open(messageJSON.Get("file").AsString());
 			} else if (fn == "picture") { //decode the picture
 				decode(messageJSON.Get("picture").AsString(),messageJSON.Get("size").AsInt());
+			} else if (fn == "adjust") {
+				set_threshold(messageJSON.Get("threshold").AsInt());
+				set_ratio(messageJSON.Get("ratio").AsInt());
+				set_kernel_size(messageJSON.Get("kernel_size").AsInt());
+				reprocess();
 			}
-			
-
 		} else if (message.is_string()) { //Simple dummy test to respond
 			char tmessage[1024];
 			sprintf(tmessage,"%s %s",message.AsString().c_str(), "! Hi there :)");
@@ -54,13 +61,21 @@ class VitileegoCVEngine : public pp::Instance {
 		}	
 	}
 	
+	int low_threshold;
+	int ratio;
+	int kernel_size;
+	
 	void init() {
+		low_threshold = 0;
+		ratio = 250;
+		kernel_size = 5;
+		
 		size = pp::Size(800,600);
 		context = pp::Graphics2D(this, size,true);
 		
 		if (!BindGraphics(context)) log("context wasn't binded");
 		
-		PP_ImageDataFormat format = pp::ImageData::GetNativeImageDataFormat();
+		format = pp::ImageData::GetNativeImageDataFormat();
     image_data = pp::ImageData(this, format, size, true);
 		
 		data = static_cast<uint32_t*>(image_data.data());
@@ -70,8 +85,7 @@ class VitileegoCVEngine : public pp::Instance {
 		
 		for (int i = 0; i < 800*600; i++) {
 			// bitwise this data is separated into 4 bytes alpha|red|green|blue
-			data[i] = 0xff00ff00;
-			//data[i] = (test << 24) | (test << 16) | (test << 8) | opaque;
+			data[i] = (0xff << 24) | (0x00 << 16) | (0xff << 8) | 0x00;
 		}
 		
 		printf("testing!!\n");
@@ -84,6 +98,21 @@ class VitileegoCVEngine : public pp::Instance {
 		log("OpenCV initialization complete");
 	}
 	
+	void set_threshold( int param ) {
+		low_threshold = param;
+		char buff[10000];
+		sprintf(buff,"testing testing 123: %i", low_threshold);
+		log(buff);
+	}
+	
+	void set_ratio( int param ) {
+		ratio = param;
+	}
+	
+	void set_kernel_size( int param ) {
+		kernel_size = param;
+	}
+	
 	/* open (std::string file)
 	 * open a file using as a resource using the string passed by the client.
 	 */
@@ -91,29 +120,17 @@ class VitileegoCVEngine : public pp::Instance {
 	}
 		
 	void decode(std::string pictureData,int size) {
-		
 		std::string decoded_data = base64_decode(pictureData);
-		
 		const uint8_t * temp  = (uint8_t *)decoded_data.c_str();
-		
-		std::vector<uint8_t> input_data(decoded_data.size());
+		input_data = std::vector<uint8_t>(decoded_data.size());
 		
 
 		for (uint32_t i = 0; i < decoded_data.size(); i++) {
-			//char buff[10000];
-			//sprintf(buff,"mark: %x",temp[i]);
 			input_data[i]=temp[i];
-			//log(std::string(buff));
 		}
 		
-		/*for (uint32_t i = 0; i < input_data.size(); i++) {
-			char buff[10000];
-			sprintf(buff,"mark: %x",input_data[i]);
-			log(std::string(buff));
-		}*/
 		
-		
-		cv::Mat image = cv::imdecode(cv::Mat(input_data), CV_LOAD_IMAGE_COLOR);
+		image = cv::imdecode(cv::Mat(input_data), CV_LOAD_IMAGE_COLOR);
 		
 		if(image.empty()){
 			log("hmm");
@@ -125,20 +142,84 @@ class VitileegoCVEngine : public pp::Instance {
 			log(buff);
 		}
 		
+		cv::Mat src_gray;
+		
+		cv::Mat dst, detected_edges;
+		
+		dst.create(image.size(), image.type());
+		
+		cv::cvtColor(image, src_gray, CV_BGR2GRAY);
+		
+		cv::blur(src_gray, detected_edges, cv::Size(3,3));
+		
+		cv::Canny(detected_edges, detected_edges, low_threshold, low_threshold*ratio, kernel_size);
+		
+		dst = cv::Scalar::all(0);
+		
+		image.copyTo(dst, detected_edges);
+		
 		PP_ImageDataFormat format = pp::ImageData::GetNativeImageDataFormat();
     image_data = pp::ImageData(this, format, pp::Size(800,600), true);
 		
 		data = static_cast<uint32_t*>(image_data.data());
 		
-		for (int x = 0; x < image.rows; x++) {
-			unsigned char * row = image.ptr(x);
-			for (int y = 0; y < image.cols*3; y+=3) {
+		for (int x = 0; x < dst.rows; x++) {
+			unsigned char * row = dst.ptr(x);
+			for (int y = 0; y < dst.cols*3; y+=3) {
 				uint8_t b = *(row+(y+0));
 				uint8_t g = *(row+(y+1));
 				uint8_t r = *(row+(y+2));
 				data[x*800 + y/3] = (0xff << 24) | (r << 16) | (g << 8) | b;
-				//context.ReplaceContents(&image_data);
-				//context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
+			}
+		}
+		
+		context.ReplaceContents(&image_data);
+		context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
+	}
+	
+	void reprocess() {
+		image = cv::imdecode(cv::Mat(input_data), CV_LOAD_IMAGE_COLOR);
+		
+		if(image.empty()){
+			log("hmm");
+			if(input_data.empty()) {log("with an extra hmmmmmmm");}
+		} else {
+			char buff[10000];
+			//cv::Size s = 
+			sprintf(buff,"[reprocess] size: %i",image.total());
+			log(buff);
+		}
+		
+		log("received");
+		
+		cv::Mat src_gray;
+		
+		cv::Mat dst, detected_edges;
+		
+		dst.create(image.size(), image.type());
+		
+		cv::cvtColor(image, src_gray, CV_BGR2GRAY);
+		
+		cv::blur(src_gray, detected_edges, cv::Size(3,3));
+		
+		cv::Canny(detected_edges, detected_edges, low_threshold, low_threshold*ratio, kernel_size);
+		
+		dst = cv::Scalar::all(0);
+		
+		image.copyTo(dst, detected_edges);
+		
+		PP_ImageDataFormat format = pp::ImageData::GetNativeImageDataFormat();
+    image_data = pp::ImageData(this, format, pp::Size(800,600), true);
+		
+		data = static_cast<uint32_t*>(image_data.data());
+		
+		for (int x = 0; x < dst.rows; x++) {
+			unsigned char * row = dst.ptr(x);
+			for (int y = 0; y < dst.cols*3; y+=3) {
+				uint8_t b = *(row+(y+0));
+				uint8_t g = *(row+(y+1));
+				uint8_t r = *(row+(y+2));
+				data[x*800 + y/3] = (0xff << 24) | (r << 16) | (g << 8) | b;
 			}
 		}
 		

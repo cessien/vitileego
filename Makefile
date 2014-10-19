@@ -17,7 +17,9 @@ PNACL_TC_PATH := $(abspath $(NACL_SDK_ROOT)/toolchain/$(OSNAME)_pnacl)
 PNACL_CXX := $(PNACL_TC_PATH)/bin/pnacl-clang++
 PNACL_FINALIZE := $(PNACL_TC_PATH)/bin/pnacl-finalize
 CXXFLAGS := -I$(NACL_SDK_ROOT)/include
-LDFLAGS := -L$(NACL_SDK_ROOT)/lib/pnacl/Release -lppapi_cpp -lppapi -lopencv_core -lopencv_highgui -lopencv_features2d -lopencv_imgproc -lopencv_flann -lpng -ljpeg -lz 
+LDFLAGS := -L$(NACL_SDK_ROOT)/lib/pnacl/Release -lppapi_cpp -lppapi -lopencv_core -lopencv_highgui -lopencv_features2d -lopencv_imgproc -lopencv_flann -lopencv_calib3d -lopencv_contrib -lopencv_features2d -lopencv_flann -lopencv_gpu -lopencv_imgproc -lopencv_legacy -lopencv_ml -lopencv_nonfree -lopencv_objdetect -lopencv_photo -lopencv_stitching -lopencv_superres -lopencv_ts -lopencv_video -lopencv_core -lopencv_highgui -lopencv_features2d -lopencv_imgproc -lopencv_flann -lopencv_videostab -lpng -ljpeg -lz
+
+
 
 all: vitileegocv.pexe
 
