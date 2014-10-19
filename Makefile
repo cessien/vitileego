@@ -1,4 +1,4 @@
-NACL_SDK_ROOT = /Users/cessien/nacl_sdk/pepper_35
+NACL_SDK_ROOT = $(HOME)/nacl_sdk/pepper_35
 NACL_PLUGIN_DEBUG=1
 
 # Project Build flags

@@ -66,7 +66,7 @@ class VitileegoCVEngine : public pp::Instance {
 	int kernel_size;
 	
 	void init() {
-		low_threshold = 0;
+		low_threshold = 10;
 		ratio = 250;
 		kernel_size = 5;
 		
