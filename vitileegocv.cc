@@ -129,55 +129,11 @@ class VitileegoCVEngine : public pp::Instance {
 			input_data[i]=temp[i];
 		}
 		
-		
-		image = cv::imdecode(cv::Mat(input_data), CV_LOAD_IMAGE_COLOR);
-		
-		if(image.empty()){
-			log("hmm");
-			if(input_data.empty()) {log("with an extra hmmmmmmm");}
-		} else {
-			char buff[10000];
-			//cv::Size s = 
-			sprintf(buff,"size: %i",image.total());
-			log(buff);
-		}
-		
-		cv::Mat src_gray;
-		
-		cv::Mat dst, detected_edges;
-		
-		dst.create(image.size(), image.type());
-		
-		cv::cvtColor(image, src_gray, CV_BGR2GRAY);
-		
-		cv::blur(src_gray, detected_edges, cv::Size(3,3));
-		
-		cv::Canny(detected_edges, detected_edges, low_threshold, low_threshold*ratio, kernel_size);
-		
-		dst = cv::Scalar::all(0);
-		
-		image.copyTo(dst, detected_edges);
-		
-		PP_ImageDataFormat format = pp::ImageData::GetNativeImageDataFormat();
-    image_data = pp::ImageData(this, format, pp::Size(800,600), true);
-		
-		data = static_cast<uint32_t*>(image_data.data());
-		
-		for (int x = 0; x < dst.rows; x++) {
-			unsigned char * row = dst.ptr(x);
-			for (int y = 0; y < dst.cols*3; y+=3) {
-				uint8_t b = *(row+(y+0));
-				uint8_t g = *(row+(y+1));
-				uint8_t r = *(row+(y+2));
-				data[x*800 + y/3] = (0xff << 24) | (r << 16) | (g << 8) | b;
-			}
-		}
-		
-		context.ReplaceContents(&image_data);
-		context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
+		reprocess();
 	}
 	
 	void reprocess() {
+		cv::RNG rng(12345);
 		image = cv::imdecode(cv::Mat(input_data), CV_LOAD_IMAGE_COLOR);
 		
 		if(image.empty()){
@@ -185,7 +141,6 @@ class VitileegoCVEngine : public pp::Instance {
 			if(input_data.empty()) {log("with an extra hmmmmmmm");}
 		} else {
 			char buff[10000];
-			//cv::Size s = 
 			sprintf(buff,"[reprocess] size: %i",image.total());
 			log(buff);
 		}
@@ -196,17 +151,40 @@ class VitileegoCVEngine : public pp::Instance {
 		
 		cv::Mat dst, detected_edges;
 		
+		std::vector<std::vector<cv::Point> > cont;
+		
+		std::vector<cv::Vec4i> hierarchy;
+		
 		dst.create(image.size(), image.type());
 		
 		cv::cvtColor(image, src_gray, CV_BGR2GRAY);
 		
-		cv::blur(src_gray, detected_edges, cv::Size(3,3));
+		cv::blur(src_gray, detected_edges, cv::Size(1,1));
 		
 		cv::Canny(detected_edges, detected_edges, low_threshold, low_threshold*ratio, kernel_size);
 		
+		cv::threshold(detected_edges, detected_edges, 0, 255, 3);
+		
+		cv::findContours( detected_edges, cont, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
+		
+		cv::Mat drawing = cv::Mat::zeros( detected_edges.size(), CV_8UC3 );
+		
+		tailAlgorithm1(&cont, image.size().height/2);
+		
+		
+		for( int i = 0; i< cont.size(); i++ ) {
+			cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+			cv::drawContours( image, cont, i, color, CV_FILLED, 8, hierarchy, 0, cv::Point() );
+			if(cont[i].size() != 0) {
+				cv::circle( image, cont[i][findLowPoint(cont[i])], 5, cv::Scalar( 0, 0, 255 ), 1, 8 );
+				drawPoints( &image, cont[i] );
+			}
+		}
+		
 		dst = cv::Scalar::all(0);
 		
-		image.copyTo(dst, detected_edges);
+		image.copyTo(dst);//, detected_edges);
+		//image.copyTo(dst, drawing);
 		
 		PP_ImageDataFormat format = pp::ImageData::GetNativeImageDataFormat();
     image_data = pp::ImageData(this, format, pp::Size(800,600), true);
@@ -238,6 +216,38 @@ class VitileegoCVEngine : public pp::Instance {
 		reply.Set("type","log");
 		reply.Set("message",message);
 		PostMessage(reply);
+	}
+	
+	int findLowPoint(std::vector<cv::Point> contour) {
+		cv::Point lowest_point = contour[0];
+		int index = 0;
+		for(int i =0; i < contour.size(); i++) {
+			//log(std::string("point: ") + std::to_string(contour[i].x) + std::string(", ") + std::to_string(contour[i].y));
+			if(contour[i].y > lowest_point.y) {
+				lowest_point = contour[i];
+				index = i;
+			}
+		}
+		//log(std::string("point: ") + std::to_string(lowest_point.x) + std::string(", ") + std::to_string(lowest_point.y));
+		return index;
+	}
+	
+	void tailAlgorithm1(std::vector<std::vector<cv::Point> > * contour, int threshold_height) {
+		for ( std::vector<std::vector<cv::Point> >::iterator it = contour->begin(); it != contour->end(); ++it) {
+			int i = it - contour->begin();
+			// If the specific contour's low point is above the halfway
+			std::vector<cv::Point> temp = (*contour)[i];
+			if( (*contour)[i][findLowPoint(temp)].y < threshold_height ) {
+				//cont.erase(cont.begin()+it);
+				(*contour)[i].clear();
+			}
+		}
+	}
+	
+	void drawPoints(cv::Mat * img, std::vector<cv::Point> contour) {
+		for(int k = 0; k < contour.size(); k++) {
+			cv::circle( *img, contour[k], 2, cv::Scalar( 255, 0, 0 ), 1, 8 );
+		}
 	}
 	
 	static inline bool is_base64(unsigned char c) {
