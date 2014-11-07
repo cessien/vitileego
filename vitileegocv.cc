@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <cmath>
 #include "ppapi/cpp/graphics_2d.h"
 #include "ppapi/cpp/instance.h"
 #include "ppapi/cpp/module.h"
@@ -47,6 +48,7 @@ class VitileegoCVEngine : public pp::Instance {
 				set_threshold(messageJSON.Get("threshold").AsInt());
 				set_ratio(messageJSON.Get("ratio").AsInt());
 				set_kernel_size(messageJSON.Get("kernel_size").AsInt());
+				set_min_slope(messageJSON.Get("min_slope").AsDouble());
 				reprocess();
 			}
 		} else if (message.is_string()) { //Simple dummy test to respond
@@ -64,11 +66,13 @@ class VitileegoCVEngine : public pp::Instance {
 	int low_threshold;
 	int ratio;
 	int kernel_size;
+	double min_slope;
 	
 	void init() {
 		low_threshold = 10;
 		ratio = 250;
 		kernel_size = 5;
+		min_slope = 2;
 		
 		size = pp::Size(800,600);
 		context = pp::Graphics2D(this, size,true);
@@ -113,6 +117,9 @@ class VitileegoCVEngine : public pp::Instance {
 		kernel_size = param;
 	}
 	
+	void set_min_slope( double param ) {
+		min_slope = param;
+	}
 	/* open (std::string file)
 	 * open a file using as a resource using the string passed by the client.
 	 */
@@ -169,8 +176,14 @@ class VitileegoCVEngine : public pp::Instance {
 		
 		cv::Mat drawing = cv::Mat::zeros( detected_edges.size(), CV_8UC3 );
 		
+		/* This algorithm eliminates options by the positioning of their lowest point. If its above the halfway point of the screen consider it gone. */
 		tailAlgorithm1(&cont, image.size().height/2);
 		
+		/* This algorithm looks for a tail based on the  threshold slope iterating up from the bottom. */
+		tailAlgorithm2(&cont, 1, 20);
+		
+		/* Run it again with a higher resolution, and more tolerance for slope */
+		tailAlgorithm2(&cont, min_slope, 5);
 		
 		for( int i = 0; i< cont.size(); i++ ) {
 			cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
@@ -240,6 +253,55 @@ class VitileegoCVEngine : public pp::Instance {
 			if( (*contour)[i][findLowPoint(temp)].y < threshold_height ) {
 				//cont.erase(cont.begin()+it);
 				(*contour)[i].clear();
+			}
+		}
+	}
+	
+	void tailAlgorithm2(std::vector<std::vector<cv::Point> > * contour, double min_slope, int resolution){
+		log("min slope " + std::to_string(min_slope));
+		for (int j = 0; j < contour->size(); j++) {
+			log("----------------------------------------");
+			int low_point_index = findLowPoint((*contour)[j]);
+			cv::Point old_point = (*contour)[j][low_point_index];
+			
+			/****** From the center point work right... *************/
+			for (std::vector<cv::Point>::iterator it = (*contour)[j].begin() + low_point_index; it != (*contour)[j].end(); ++it) {
+				//only count points that are a distance of 10 pixels vertically
+				//log("curr y: " + std::to_string(it->y) + "old y: " + std::to_string(old_point.y));
+				if(old_point.y - resolution < it->y) continue;
+				//Get the next resolution point
+				cv::Point current_point(it->x,it->y);
+				//Calculate the slope
+				double slope = (double)(current_point.y - old_point.y)/(double)(current_point.x - old_point.x);
+				slope = (double)std::abs(slope);
+				
+				old_point.x = current_point.x;
+				old_point.y = current_point.y;
+				if ((double)slope < (double)min_slope) {
+					(*contour)[j] = std::vector<cv::Point>((*contour)[j].begin(),it);
+					break;
+				}
+			}
+			
+			old_point = (*contour)[j][low_point_index];
+			/***** Annnnnnnd reverse *********/
+			for (std::vector<cv::Point>::iterator it = (*contour)[j].begin() + low_point_index; it != (*contour)[j].begin(); --it) {
+				//only count points that are a distance of 10 pixels vertically
+				//log("curr y: " + std::to_string(it->y) + "old y: " + std::to_string(old_point.y));
+				if(old_point.y - resolution < it->y) continue;
+				//Get the next resolution point
+				cv::Point current_point(it->x,it->y);
+				//Calculate the slope
+				double slope = (double)(current_point.y - old_point.y)/(double)(current_point.x - old_point.x);
+				//log(std::to_string(slope));
+				slope = (double)std::abs(slope);
+				
+				old_point.x = current_point.x;
+				old_point.y = current_point.y;
+				if ((double)slope < (double)min_slope) {
+					(*contour)[j] = std::vector<cv::Point>(it,(*contour)[j].end());
+					break;
+				}
 			}
 		}
 	}

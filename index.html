@@ -84,26 +84,30 @@
 
 						<img id="loaded-image" style="display:none;"/>
 					</div>
-			</div>
+				</div>
 				<div class="col-md-3">
 					<div class="box">
 						<div id="sidestats">
-							<p>Legion count:</p>
+							<!--<p>Legion count:</p>
 							<p class="big">37</p>
 							<p>Legion coverage:</p>
-							<p class="big">62.45%</p>
+							<p class="big">62.45%</p>-->
 							<form role="form">
 								<div class="form-group">
 									<label for="threshold">Threshold</label>
 									<input type="text" class="form-control"  onchange="update_all()" id="threshold" placeholder="1 - 100" value="10" />
 								</div>
 								<div class="form-group">
-									<label for="threshold">Ratio</label>
+									<label for="ratio">Ratio</label>
 									<input type="text" class="form-control"  onchange="update_all()" id="ratio" placeholder="ratio" value="250"/>
 								</div>
 								<div class="form-group">
-									<label for="threshold">Kernel Size</label>
+									<label for="kernel-size">Kernel Size</label>
 									<input type="text" class="form-control"  onchange="update_all()" id="kernel-size" placeholder="1 - 10 please" value="5"/>
+								</div>
+								<div class="form-group">
+									<label for="min-slope">Minimum Slope</label>
+									<input type="text" class="form-control"  onchange="update_all()" id="min-slope" value="3.0"/>
 								</div>
 							</form>
 						</div>

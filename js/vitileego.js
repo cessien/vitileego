@@ -47,9 +47,10 @@ $(document).ready(function(){
 	$("input").keyup(function(){
 		var data = {
 			fn:"adjust",
-			threshold: parseInt($('#threshold').val())|0,
-			ratio: parseInt($('#ratio').val())|1,
-			kernel_size: parseInt($('#kernel-size').val())|1
+			threshold: parseInt($('#threshold').val())||0,
+			ratio: parseInt($('#ratio').val())||1,
+			kernel_size: parseInt($('#kernel-size').val())||1,
+			min_slope: parseFloat($('#min-slope').val())||2.0
 		};
 		console.log(data);
 		VitileegoModule.postMessage(data);
