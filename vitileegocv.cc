@@ -22,6 +22,7 @@ class VitileegoCVEngine : public pp::Instance {
 	uint32_t* data;
 	std::vector<uint8_t> input_data;
 	cv::Mat image;
+	bool image_loaded;
 	
 	public:
 	explicit VitileegoCVEngine(PP_Instance instance) : pp::Instance(instance), callback_factory(this){}
@@ -44,12 +45,22 @@ class VitileegoCVEngine : public pp::Instance {
 				open(messageJSON.Get("file").AsString());
 			} else if (fn == "picture") { //decode the picture
 				decode(messageJSON.Get("picture").AsString(),messageJSON.Get("size").AsInt());
+				image_loaded = true;
 			} else if (fn == "adjust") {
 				set_threshold(messageJSON.Get("threshold").AsInt());
 				set_ratio(messageJSON.Get("ratio").AsInt());
 				set_kernel_size(messageJSON.Get("kernel_size").AsInt());
 				set_min_slope(messageJSON.Get("min_slope").AsDouble());
-				reprocess();
+				if(messageJSON.HasKey("step1"))
+					set_step1(messageJSON.Get("step1").AsBool());
+				if(messageJSON.HasKey("step2"))
+					set_step2(messageJSON.Get("step2").AsBool());
+				if(messageJSON.HasKey("step3"))
+					set_step3(messageJSON.Get("step3").AsBool());
+				if(messageJSON.HasKey("use_mask"))
+					set_use_mask(messageJSON.Get("use_mask").AsBool());
+				if(image_loaded)
+					reprocess();
 			}
 		} else if (message.is_string()) { //Simple dummy test to respond
 			char tmessage[1024];
@@ -67,13 +78,25 @@ class VitileegoCVEngine : public pp::Instance {
 	int ratio;
 	int kernel_size;
 	double min_slope;
+	bool step1;
+	bool step2;
+	bool step3;
+	bool use_mask;
+	
+	void init_defaults(){
+		image_loaded = false;
+		low_threshold = 30;
+		ratio = 3;
+		kernel_size = 3;
+		min_slope = 1;
+		step1 = true;
+		step2 = true;
+		step3 = true;
+		use_mask = false;
+	}
 	
 	void init() {
-		low_threshold = 10;
-		ratio = 250;
-		kernel_size = 5;
-		min_slope = 2;
-		
+		init_defaults();
 		size = pp::Size(800,600);
 		context = pp::Graphics2D(this, size,true);
 		
@@ -91,8 +114,6 @@ class VitileegoCVEngine : public pp::Instance {
 			// bitwise this data is separated into 4 bytes alpha|red|green|blue
 			data[i] = (0xff << 24) | (0x00 << 16) | (0xff << 8) | 0x00;
 		}
-		
-		printf("testing!!\n");
 		
 		context.ReplaceContents(&image_data);
 		
@@ -120,6 +141,23 @@ class VitileegoCVEngine : public pp::Instance {
 	void set_min_slope( double param ) {
 		min_slope = param;
 	}
+	
+	void set_step1( bool param ) {
+		step1 = param;
+	}
+	
+	void set_step2( bool param ) {
+		step2 = param;
+	}
+	
+	void set_step3( bool param ) {
+		step3 = param;
+	}
+	
+	void set_use_mask( bool param) {
+		use_mask = param;
+	}
+	
 	/* open (std::string file)
 	 * open a file using as a resource using the string passed by the client.
 	 */
@@ -142,6 +180,11 @@ class VitileegoCVEngine : public pp::Instance {
 	void reprocess() {
 		cv::RNG rng(12345);
 		image = cv::imdecode(cv::Mat(input_data), CV_LOAD_IMAGE_COLOR);
+		
+		double new_scale = getNewScale(image.size().width, image.size().height);
+		log("new scale: " +  std::to_string(new_scale));
+		cv::resize(image, image, cv::Size(), new_scale, new_scale, CV_INTER_LINEAR );
+		
 		
 		if(image.empty()){
 			log("hmm");
@@ -166,7 +209,7 @@ class VitileegoCVEngine : public pp::Instance {
 		
 		cv::cvtColor(image, src_gray, CV_BGR2GRAY);
 		
-		cv::blur(src_gray, detected_edges, cv::Size(1,1));
+		cv::blur(src_gray, detected_edges, cv::Size(2,2));
 		
 		cv::Canny(detected_edges, detected_edges, low_threshold, low_threshold*ratio, kernel_size);
 		
@@ -177,26 +220,38 @@ class VitileegoCVEngine : public pp::Instance {
 		cv::Mat drawing = cv::Mat::zeros( detected_edges.size(), CV_8UC3 );
 		
 		/* This algorithm eliminates options by the positioning of their lowest point. If its above the halfway point of the screen consider it gone. */
-		tailAlgorithm1(&cont, image.size().height/2);
+		if (step1) 
+			tailAlgorithm1(&cont, image.size().height/2);
+		else log("skipping step 1...");
 		
 		/* This algorithm looks for a tail based on the  threshold slope iterating up from the bottom. */
-		tailAlgorithm2(&cont, 1, 20);
+		if (step2) 
+			tailAlgorithm2(&cont, 1, 20);
+		else log("skipping step 2...");
+		
+		removeShortContours(&cont);
 		
 		/* Run it again with a higher resolution, and more tolerance for slope */
-		tailAlgorithm2(&cont, min_slope, 5);
+		if (step3) 
+			tailAlgorithm2(&cont, min_slope, 5);
+		else log("skipping step 3...");
 		
 		for( int i = 0; i< cont.size(); i++ ) {
 			cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-			cv::drawContours( image, cont, i, color, CV_FILLED, 8, hierarchy, 0, cv::Point() );
+			//if (use_mask) 
+				cv::drawContours( image, cont, i, color, CV_FILLED, 8, hierarchy, 0, cv::Point() );
 			if(cont[i].size() != 0) {
 				cv::circle( image, cont[i][findLowPoint(cont[i])], 5, cv::Scalar( 0, 0, 255 ), 1, 8 );
-				drawPoints( &image, cont[i] );
+				if (use_mask) drawPoints( &image, cont[i] );
 			}
 		}
 		
 		dst = cv::Scalar::all(0);
 		
-		image.copyTo(dst);//, detected_edges);
+		if (use_mask) 
+			image.copyTo(dst, detected_edges);
+		else
+			image.copyTo(dst);
 		//image.copyTo(dst, drawing);
 		
 		PP_ImageDataFormat format = pp::ImageData::GetNativeImageDataFormat();
@@ -219,7 +274,6 @@ class VitileegoCVEngine : public pp::Instance {
 	}
 	
 	void render_loop(int32_t){
-		log("called");
 		//context.Flush(callback_factory.NewCallback(&VitileegoCVEngine::render_loop));
 	}
 	
@@ -251,7 +305,6 @@ class VitileegoCVEngine : public pp::Instance {
 			// If the specific contour's low point is above the halfway
 			std::vector<cv::Point> temp = (*contour)[i];
 			if( (*contour)[i][findLowPoint(temp)].y < threshold_height ) {
-				//cont.erase(cont.begin()+it);
 				(*contour)[i].clear();
 			}
 		}
@@ -306,10 +359,39 @@ class VitileegoCVEngine : public pp::Instance {
 		}
 	}
 	
+	void removeShortContours(std::vector<std::vector<cv::Point> > * contour){
+		for (int j = 0; j < contour->size(); j++) {
+			double distance = 0.0;
+			cv::Point old_point = (*contour)[j][0];
+			
+			for (std::vector<cv::Point>::iterator it = (*contour)[j].begin(); it != (*contour)[j].end(); ++it) {
+				cv::Point current_point(it->x,it->y);
+				//Calculate the distance
+				double curr_distance = std::sqrt((double)(std::pow(current_point.x - old_point.x,2) + std::pow(current_point.y - old_point.y,2)));
+				curr_distance = (double)std::abs(curr_distance);
+				
+				distance += curr_distance;
+				
+				old_point.x = current_point.x;
+				old_point.y = current_point.y;
+			}
+			
+			if(distance < 100) {
+				(*contour)[j].clear();
+			}
+		}
+	}
+	
 	void drawPoints(cv::Mat * img, std::vector<cv::Point> contour) {
 		for(int k = 0; k < contour.size(); k++) {
 			cv::circle( *img, contour[k], 2, cv::Scalar( 255, 0, 0 ), 1, 8 );
 		}
+	}
+	
+	/* Takes an image size and scales it to best fit the 800*600 screen */
+	double getNewScale(int width, int height) {
+		//Scale the largest dimension of an image to the smallest of 800*600
+		return (width > height) ? (double)800/(double)width : (double)600/(double)height;
 	}
 	
 	static inline bool is_base64(unsigned char c) {
