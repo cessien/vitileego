@@ -1,5 +1,13 @@
 var debugMode = true;
 var VitileegoModule;
+var slipslidevar = 1;
+var active = false;
+
+var pastLoadedFiles = JSON.parse(localStorage.getItem("past_files"));
+if(!pastLoadedFiles) {
+	pastLoadedFiles = {};
+	localStorage.setItem("past_files", JSON.stringify(pastLoadedFiles));
+}
 			
 function moduleInit() {
 	VitileegoModule = document.getElementById("vitileegocv");
@@ -20,19 +28,31 @@ function handleMessage(e) {
 }
 
 function update_all(){
+	if(active) {
+		console.log("pausing");
+		return;
+	}
+	active = true;
 	var data = {
 		fn:"adjust",
 		threshold: parseInt($('#threshold').val())||0,
 		ratio: parseInt($('#ratio').val())||1,
 		kernel_size: parseInt($('#kernel-size').val())||3,
-		min_slope: parseFloat($('#min-slope').val())||2.0,
+		min_slope: parseFloat($('#min-slope').val())||1,
 		step1: $('#step1').prop('checked'),
 		step2: $('#step2').prop('checked'),
 		step3: $('#step3').prop('checked'),
-		use_mask: $('#use-mask').prop('checked')
+		use_mask: $('#use-mask').prop('checked'),
+		slipslide: slipslidevar
 	};
 	console.log(data);
 	VitileegoModule.postMessage(data);
+	setTimeout(function(){active = false;},1);
+}
+
+function addPicture(file, picture) {
+	pastLoadedFiles[file.name] = file.name;
+	localStorage.setItem("files",JSON.stringify(pastLoadedFiles));
 }
 
 function loadPicture(e){
@@ -41,13 +61,10 @@ function loadPicture(e){
 	var reader = new FileReader();
 
 	// Closure to capture the file information.
-	reader.onload = function(file) {
+	reader.onload = function(e) {
 		var pictureData = reader.result;
+		addPicture(file, pictureData);
 		pictureData = pictureData.substring(pictureData.indexOf(',')+1);
-		//pictureData =  "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAp1JREFUeNqEU21IU1EYfu7unW5Ty6aBszYs6MeUjGVYokHYyH5E1B9rZWFEFPQnAwmy6Hc/oqhfJsRKSSZGH1JIIX3MNCsqLTD9o1Oj6ebnnDfvvefezrnbdCHhCw/n433P8z7nPe/hBEEAtX0U7hc164uwuvVSXKwZLoOmaRDim+7m9vZa0WiEKSUFFpNpCWlmMyypqTDRuYn6t3k8vmQ2gRDCxs0t9fW45F52aBTROJLtZl7nEZad2m+KtoQCQ0FBARyOCGRZ/q92I1WgqqXlfdd95VsrK8/pChIEqqpCkiQsiCII0aBQZZoWl8lzFDwsFjMl0DBLY8Lj41hBwK4jSQrWOIphL6xYyhwJDWGo6wFSaH1Y3PTCAsITE1oyAa8flhWkbSiCLX8vun11eiGIpiJ/z2nYdx5HqLdVV7elrOzsuqysL3rmBIGiKPizKCHHWY4PLVeQbnXAdegqdhy+hu8dDTBnbqQJZJ1A7u+vz7RaiymWCZgCRSF6Edk8b9cx+B/W6WuVxPaZnyiqXoPpyUmVYvkKTIFClHigEieKjYuSvETUllaF4GAUM1NT6ooaJDKx+aDfC9fByxj90REb+9ppmIoAscH/6leg8MS9DJXPAM9xHCM443K57C6biMjcHDaVVCHw9RmCA2/RGC5C00AqXk/m4p20HZK4CM/J3Zk9n0ecMBhDQnJHcrTisyMfdQXOilrdMfxcwoHq/fg5R59TiQV3hYGKo6X2J/c7LyQIjOx9GXhOw/zoJ8wEevRGyp53o/lGMNYsBgPtEwLecwov7/jGDKa1twT6o3KpL4MdZgGsWZLtfPr7f1q58k1JNHy7YYaM+J+K3Y2PmAIbRavX66229hrGVvvL5uzsHDEUvUu+NT1my78CDAAMK1a8/QaZCgAAAABJRU5ErkJggg==";
-		
-		//console.log("client data: "+pictureData);
-		//console.log("client legth: "+pictureData.length);
 		VitileegoModule.postMessage({fn:"picture",picture: pictureData, size: pictureData.length});
 	};
 
@@ -55,7 +72,48 @@ function loadPicture(e){
 	reader.readAsDataURL(file);
 }
 
+function loadStoredPicture(name){
+	var pictureData = pastLoadedFiles[name];
+	pictureData = pictureData.substring(pictureData.indexOf(',')+1);
+	VitileegoModule.postMessage({fn:"picture",picture: pictureData, size: pictureData.length});
+}
+
 $(document).ready(function(){
+	$( "#threshold-slider" ).slider({
+      min: 0,
+      max: 100,
+			value: 30,
+			range: "min",
+      change: function (){},
+			slide: function (){
+				$('#threshold').val($('#threshold-slider').slider("value"));
+				update_all();
+			}
+	});
+	
+	$( "#kernel-slider" ).slider({
+      min: 3,
+      max: 7,
+			value: 3,
+			step: 2,
+			range: "min",
+      change: function (){
+				$('#kernel-size').val($('#kernel-slider').slider("value"));
+				update_all();
+			}
+	});
+	
+	$( "#slipslide" ).slider({
+      min: 1,
+      max: 100,
+			value: 1,
+			range: "min",
+			slide: function (){
+				slipslidevar = parseInt($("#slipslide").slider("value"));
+				update_all();
+			}
+	});
+	
 	$("input").keyup(function(){
 		update_all();
 	});

@@ -2,12 +2,12 @@
 <html>
 	<head>
 		<title>vitileego</title>
+		<link type="text/css" href="css/jquery-ui.css" media="all" rel="stylesheet" />
 		<link type="text/css" href="css/bootstrap.min.css" media="all" rel="stylesheet" />
-		<link type="text/css" href="css/slider.css" media="all" rel="stylesheet" />
 		<link type="text/css" href="css/vitiligo.css" media="all" rel="stylesheet" />
 		<script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
+		<script type="text/javascript" src="js/jquery-ui.min.js"></script>
 		<script type="text/javascript" src="js/bootstrap.js"></script>
-		<script type="text/javascript" src="js/bootstrap-slider.js"></script>
 		<script type="text/javascript" src="js/vitileego.js"></script>
 	<head>
 	<body oncontextmenu="return false">
@@ -93,21 +93,27 @@
 							<p>Legion coverage:</p>
 							<p class="big">62.45%</p>-->
 							<form role="form">
-								<div class="form-group">
-									<label for="threshold">Threshold</label>
-									<input type="text" class="form-control"  onchange="update_all()" id="threshold" placeholder="1 - 255" value="30" />
+								<div class="form-group row">
+									<label for="threshold" class="col-sm-12">Debug slider</label>
+									<div id="slipslide" class="col-sm-10"></div>
+								</div>
+								<div class="form-group row">
+									<label for="threshold" class="col-sm-12">Threshold</label>
+									<div id="threshold-slider" class="col-sm-10"></div>
+									<input type="text" class="form-control col-sm-2"  onchange="update_all()" id="threshold" placeholder="1 - 255" value="30" style="width:45px;" readonly/>
 								</div>
 								<div class="form-group">
 									<label for="ratio">Ratio</label>
 									<input type="text" class="form-control"  onchange="update_all()" id="ratio" placeholder="recommend 2 or 3" value="3"/>
 								</div>
-								<div class="form-group">
-									<label for="kernel-size">Kernel Size</label>
-									<input type="text" class="form-control"  onchange="update_all()" id="kernel-size" placeholder="1 - 7 please" value="3"/>
+								<div class="form-group row">
+									<label class="col-sm-12" for="kernel-size">Kernel Size</label>
+									<div class="col-sm-6" id="kernel-slider" style="width: 80px;"></div>
+									<input type="text" class="form-control col-sm-6"  onchange="update_all()" id="kernel-size" placeholder="1 - 7 please" value="3" style="width:80px;" readonly/>
 								</div>
 								<div class="form-group">
 									<label for="min-slope">Minimum Slope</label>
-									<input type="text" class="form-control"  onchange="update_all()" id="min-slope" value="2.0"/>
+									<input type="text" class="form-control"  onchange="update_all()" id="min-slope" value="1.0"/>
 								</div>
 								<div class="row">
 									<div class="col-md-3 checkbox">

@@ -59,6 +59,8 @@ class VitileegoCVEngine : public pp::Instance {
 					set_step3(messageJSON.Get("step3").AsBool());
 				if(messageJSON.HasKey("use_mask"))
 					set_use_mask(messageJSON.Get("use_mask").AsBool());
+				if(messageJSON.HasKey("slipslide"))
+					set_debug(messageJSON.Get("slipslide").AsInt());
 				if(image_loaded)
 					reprocess();
 			}
@@ -82,17 +84,19 @@ class VitileegoCVEngine : public pp::Instance {
 	bool step2;
 	bool step3;
 	bool use_mask;
+	int debug;
 	
 	void init_defaults(){
 		image_loaded = false;
 		low_threshold = 30;
 		ratio = 3;
 		kernel_size = 3;
-		min_slope = 1;
+		min_slope = .4;
 		step1 = true;
 		step2 = true;
 		step3 = true;
 		use_mask = false;
+		debug = 1;
 	}
 	
 	void init() {
@@ -158,6 +162,10 @@ class VitileegoCVEngine : public pp::Instance {
 		use_mask = param;
 	}
 	
+	void set_debug( int param ) {
+		debug = param;
+	}
+	
 	/* open (std::string file)
 	 * open a file using as a resource using the string passed by the client.
 	 */
@@ -209,11 +217,13 @@ class VitileegoCVEngine : public pp::Instance {
 		
 		cv::cvtColor(image, src_gray, CV_BGR2GRAY);
 		
-		cv::blur(src_gray, detected_edges, cv::Size(2,2));
+		cv::blur(src_gray, detected_edges, cv::Size(3,3));
 		
 		cv::Canny(detected_edges, detected_edges, low_threshold, low_threshold*ratio, kernel_size);
 		
 		cv::threshold(detected_edges, detected_edges, 0, 255, 3);
+		
+		cv::dilate(detected_edges, detected_edges, getStructuringElement( cv::MORPH_ELLIPSE, cv::Size( 5, 5 ), cv::Point( 2, 2 ) ));
 		
 		cv::findContours( detected_edges, cont, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
 		
@@ -224,27 +234,18 @@ class VitileegoCVEngine : public pp::Instance {
 			tailAlgorithm1(&cont, image.size().height/2);
 		else log("skipping step 1...");
 		
-		/* This algorithm looks for a tail based on the  threshold slope iterating up from the bottom. */
-		if (step2) 
-			tailAlgorithm2(&cont, 1, 20);
-		else log("skipping step 2...");
-		
 		removeShortContours(&cont);
 		
-		/* Run it again with a higher resolution, and more tolerance for slope */
-		if (step3) 
-			tailAlgorithm2(&cont, min_slope, 5);
-		else log("skipping step 3...");
+		/* Join contours with similar start and ends */
+		cv::vector<cv::Point> matches;
+		if (step2) 
+			matches = joinContours(&cont, 50);
+		else log("skipping step 2...");
 		
-		for( int i = 0; i< cont.size(); i++ ) {
-			cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-			//if (use_mask) 
-				cv::drawContours( image, cont, i, color, CV_FILLED, 8, hierarchy, 0, cv::Point() );
-			if(cont[i].size() != 0) {
-				cv::circle( image, cont[i][findLowPoint(cont[i])], 5, cv::Scalar( 0, 0, 255 ), 1, 8 );
-				if (use_mask) drawPoints( &image, cont[i] );
-			}
-		}
+		/* This algorithm looks for a tail based on the  threshold slope iterating up from the bottom. */
+		if (step3) 
+			tailAlgorithm2(&cont, min_slope, 10, image.size().height/2);
+		else log("skipping step 3...");
 		
 		dst = cv::Scalar::all(0);
 		
@@ -253,6 +254,27 @@ class VitileegoCVEngine : public pp::Instance {
 		else
 			image.copyTo(dst);
 		//image.copyTo(dst, drawing);
+		
+		for( int i = 0; i< cont.size(); i++ ) {
+			cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+			cv::drawContours( dst, cont, i, color, CV_FILLED, 8, hierarchy, 0, cv::Point() );
+			if(cont[i].size() != 0) {
+				//Mark low points
+				cv::circle( dst, cont[i][findLowPoint(cont[i])], 5, cv::Scalar( 0, 0, 255 ), 1, 8 );
+				//Mark beginning of contours
+				cv::circle( dst, cont[i][0], 8, cv::Scalar( 255, 0, 255 ), 1, 8 );
+				cv::putText( dst, " line "+std::to_string(i),cont[i][0],0,1,color,1,8,false);
+				//mark end of contours
+				cv::circle( dst, cont[i][cont[i].size() - 1], 10, cv::Scalar( 0, 255, 255 ), 1, 8 );
+				
+				cv::circle( dst, cont[i][(int)(cont[i].size()*debug/100) - 1], 10, cv::Scalar( 255, 255, 255 ), 1, 8 );
+				if (!use_mask) drawPoints( &dst, cont[i] );
+			}
+		}
+		log("sizzle: " + std::to_string(matches.size()));
+		for(int i = 0; i < matches.size(); i++){
+			cv::circle( dst, matches[i], 5, cv::Scalar( 0, 255, 0 ), 1, 8 );
+		}
 		
 		PP_ImageDataFormat format = pp::ImageData::GetNativeImageDataFormat();
     image_data = pp::ImageData(this, format, pp::Size(800,600), true);
@@ -310,7 +332,7 @@ class VitileegoCVEngine : public pp::Instance {
 		}
 	}
 	
-	void tailAlgorithm2(std::vector<std::vector<cv::Point> > * contour, double min_slope, int resolution){
+	void tailAlgorithm2(std::vector<std::vector<cv::Point> > * contour, double min_slope, int resolution, int threshold_height){
 		log("min slope " + std::to_string(min_slope));
 		for (int j = 0; j < contour->size(); j++) {
 			log("----------------------------------------");
@@ -321,7 +343,7 @@ class VitileegoCVEngine : public pp::Instance {
 			for (std::vector<cv::Point>::iterator it = (*contour)[j].begin() + low_point_index; it != (*contour)[j].end(); ++it) {
 				//only count points that are a distance of 10 pixels vertically
 				//log("curr y: " + std::to_string(it->y) + "old y: " + std::to_string(old_point.y));
-				if(old_point.y - resolution < it->y) continue;
+				if((int)distancePoints(old_point, *it) < resolution) continue;
 				//Get the next resolution point
 				cv::Point current_point(it->x,it->y);
 				//Calculate the slope
@@ -330,7 +352,7 @@ class VitileegoCVEngine : public pp::Instance {
 				
 				old_point.x = current_point.x;
 				old_point.y = current_point.y;
-				if ((double)slope < (double)min_slope) {
+				if ((double)slope < (double)min_slope && current_point.y < threshold_height) {
 					(*contour)[j] = std::vector<cv::Point>((*contour)[j].begin(),it);
 					break;
 				}
@@ -380,6 +402,92 @@ class VitileegoCVEngine : public pp::Instance {
 				(*contour)[j].clear();
 			}
 		}
+	}
+	
+	/* For each vector end, look at each vector beginning, and join the contours if the two point are within ~20 pixels of each other */
+	std::vector<cv::Point> joinContours(std::vector<std::vector<cv::Point> > * contour, int box_radius) {
+		std::vector<cv::Point> tmp(1000);
+		tmp.reserve(1000);
+		for (int j = 0; j < contour->size(); j++) {
+			for (int k = 0; k < contour->size(); k++) {
+				//log("##############################################");
+				if ( j == k ) continue;
+				
+				if ((*contour)[j].size() == 0 || (*contour)[k].size() == 0) continue;
+				
+				cv::Point beginning_of_current = (*contour)[j][0];
+				cv::Point end_of_current = (*contour)[j][(*contour)[j].size() - 1];
+				cv::Point beginning_of_other = (*contour)[k][0];
+				cv::Point end_of_other = (*contour)[k][(*contour)[k].size() - 1];
+
+				// End meets beginning (of other)
+				int distance_x = std::abs( end_of_current.x - beginning_of_other.x );
+				int distance_y = std::abs( end_of_current.y - beginning_of_other.y );
+
+				if ( distance_x <= box_radius && distance_y <= box_radius ) {
+					log("e-b");
+					log("x: "+std::to_string(end_of_current.x)+", y: "+std::to_string(end_of_current.y));
+					log("x: "+std::to_string(beginning_of_other.x)+", y: "+std::to_string(beginning_of_other.y));
+					tmp.push_back(beginning_of_current);
+					(*contour)[j].reserve((*contour)[j].size()+(*contour)[k].size());
+					(*contour)[j].insert((*contour)[j].end(),(*contour)[k].begin(),(*contour)[k].end());
+					(*contour)[k].clear();
+					continue;
+				}
+				
+				// Beginning meets end (of other)
+				distance_x = std::abs( beginning_of_current.x - end_of_other.x );
+				distance_y = std::abs( beginning_of_current.y - end_of_other.y );
+				
+				if ( distance_x <= box_radius && distance_y <= box_radius ) {
+					log("b-e");
+					log("x: "+std::to_string(beginning_of_current.x)+", y: "+std::to_string(beginning_of_current.y));
+					log("x: "+std::to_string(end_of_other.x)+", y: "+std::to_string(end_of_other.y));
+					tmp.push_back(end_of_other);
+					(*contour)[k].reserve((*contour)[j].size()+(*contour)[k].size());
+					(*contour)[k].insert((*contour)[k].end(),(*contour)[j].begin(),(*contour)[j].end());
+					(*contour)[j].clear();
+					continue;
+				}
+				
+				// Beginning meets beginning 
+				distance_x = std::abs( beginning_of_current.x - beginning_of_other.x );
+				distance_y = std::abs( beginning_of_current.y - beginning_of_other.y );
+				
+				if ( distance_x <= box_radius && distance_y <= box_radius ) {
+					log("b-b");
+					log("x: "+std::to_string(beginning_of_current.x)+", y: "+std::to_string(beginning_of_current.y));
+					log("x: "+std::to_string(beginning_of_other.x)+", y: "+std::to_string(beginning_of_other.y));
+					tmp.push_back(beginning_of_current);
+					(*contour)[j].reserve((*contour)[j].size()+(*contour)[k].size());
+					std::reverse((*contour)[k].begin(),(*contour)[k].end());
+					(*contour)[j].insert((*contour)[j].end(),(*contour)[k].begin(),(*contour)[k].end());
+					(*contour)[k].clear();
+					continue;
+				} 
+				
+				// End meets end
+				distance_x = std::abs( end_of_current.x - end_of_other.x );
+				distance_y = std::abs( end_of_current.y - end_of_other.y );
+				
+				if ( distance_x <= box_radius && distance_y <= box_radius ) {
+					log("e-e");
+					log("x: "+std::to_string(end_of_current.x)+", y: "+std::to_string(end_of_current.y));
+					log("x: "+std::to_string(end_of_other.x)+", y: "+std::to_string(end_of_other.y));
+					tmp.push_back(end_of_current);
+					(*contour)[j].reserve((*contour)[j].size()+(*contour)[k].size());
+					std::reverse((*contour)[k].begin(),(*contour)[k].end());
+					(*contour)[j].insert((*contour)[j].end(),(*contour)[k].begin(),(*contour)[k].end());
+					(*contour)[k].clear();
+					continue;
+				} 
+			}
+		}
+		return tmp;
+	}
+	
+	double distancePoints(cv::Point first, cv::Point second) {
+		return std::sqrt((double)(std::pow(second.x - first.x,2) + std::pow(second.y - first.y,2)));
 	}
 	
 	void drawPoints(cv::Mat * img, std::vector<cv::Point> contour) {
