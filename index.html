@@ -46,7 +46,7 @@
 										<a href="#" class="dropdown-toggle" data-toggle="dropdown" data-toggle="tooltip" data-placement="bottom" title="Configure spot threshold and grayscale settings. Changes made here are persistent between app sessions.">
 												<span class="glyphicon glyphicon-cog"></span>
 												<strong>Options</strong>
-												<span class="glyphicon glyphicon-chevron-down"></span>
+												<span class="caret"></span>
 										</a>
 										<ul class="dropdown-menu">
 											<li class="row">
@@ -115,7 +115,11 @@
 						</ul>
 				</div>
 		</div> <!-- End navbar-->
-		<div class="container-fluid"> 
+		<div class="loader-container">
+			<span class="loader"><span class="loader-inner"></span></span>
+			<h3 style="font-family:DayPosterBlack;">LOADING</h3>
+		</div>
+		<div class="container-fluid" style="visibility:hidden;"> 
 			<div class="row">
 				<div class="col-md-7 col-md-offset-1">
 					<div id="viewport">

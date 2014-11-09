@@ -190,7 +190,7 @@ class VitileegoCVEngine : public pp::Instance {
 		image = cv::imdecode(cv::Mat(input_data), CV_LOAD_IMAGE_COLOR);
 		
 		double new_scale = getNewScale(image.size().width, image.size().height);
-		log("new scale: " +  std::to_string(new_scale));
+		log("newa scale: " +  std::to_string(new_scale));
 		cv::resize(image, image, cv::Size(), new_scale, new_scale, CV_INTER_LINEAR );
 		
 		

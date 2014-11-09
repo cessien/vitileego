@@ -13,6 +13,8 @@ function moduleInit() {
 	VitileegoModule = document.getElementById("vitileegocv");
 	VitileegoModule.addEventListener("message", handleMessage, true);
 	console.log("vitileego module successfully loaded.");
+	$('.loader-container').hide(400);
+	$('.container-fluid').attr("style","");
 	
 	VitileegoModule.postMessage({fn: "init"});
 }
