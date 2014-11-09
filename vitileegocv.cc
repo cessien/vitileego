@@ -116,7 +116,7 @@ class VitileegoCVEngine : public pp::Instance {
 		
 		for (int i = 0; i < 800*600; i++) {
 			// bitwise this data is separated into 4 bytes alpha|red|green|blue
-			data[i] = (0xff << 24) | (0x00 << 16) | (0xff << 8) | 0x00;
+			data[i] = (0xff << 24) | (0xe5 << 16) | (0xe5 << 8) | 0x0e5;
 		}
 		
 		context.ReplaceContents(&image_data);

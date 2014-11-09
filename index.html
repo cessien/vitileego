@@ -11,7 +11,7 @@
 		<script type="text/javascript" src="js/vitileego.js"></script>
 	<head>
 	<body oncontextmenu="return false">
-		<div class="navbar navbar-inverse" role="navigation">
+		<div class="navbar navbar" role="navigation">
 				<div class="navbar-header">
 						<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
 								<span class="icon-bar"></span>
@@ -25,13 +25,13 @@
 								<li class="dropdown">
 									<a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-camera"></span><strong>&nbsp;Open</strong>&nbsp;<span class="caret"></span></a>
 									<ul class="dropdown-menu">
-											<li><a href="#">Take a picture...</a></li>
+											<li><a href="#">Take a picture... [TODO]</a></li>
 											<li class="divider"></li>
 											<li><a href="#">Choose a file...</a></li>
 											<li><input type="file" id="files" class="file-input"/></li>
 									</ul>
 								</li>
-								<li class="active"><a href="http://bootsnipp.com/snippets/featured/nav-account-manager" target="_blank"><span class="glyphicon glyphicon-stats"></span><strong>&nbsp;Stats</strong></a></li>
+								<li class="active"><a href="" target="_blank"><span class="glyphicon glyphicon-stats"></span><strong>&nbsp;Stats</strong></a></li>
 								 <li class="dropdown">
 										<a href="#" class="dropdown-toggle" data-toggle="dropdown">Recents
 										<span class="caret"></span>
@@ -42,32 +42,74 @@
 								 </li>              
 						 </ul>
 						<ul class="nav navbar-nav navbar-right">
-								<li class="dropdown" data-toggle="tooltip" data-placement="bottom" title="Configure spot threshold and grayscale settings. Changes made here are persistent between app sesssions.">
-										<a href="#" class="dropdown-toggle" data-toggle="dropdown">
+								<li class="dropdown" >
+										<a href="#" class="dropdown-toggle" data-toggle="dropdown" data-toggle="tooltip" data-placement="bottom" title="Configure spot threshold and grayscale settings. Changes made here are persistent between app sessions.">
 												<span class="glyphicon glyphicon-cog"></span>
 												<strong>Options</strong>
 												<span class="glyphicon glyphicon-chevron-down"></span>
 										</a>
 										<ul class="dropdown-menu">
-												<li><a href="#">Threshold slider</a></li>
-												<li><a>Mice detection sensitivity</a></li>
-												<li class="divider"></li>
-												<li><a>Gray scale channels</a></li>
-												<li><a>Red</a></li>
-												<li><a>Green</a></li>
-												<li><a>Blue</a></li>
-												<li class="divider"></li>
-												<li>
-														<div class="navbar-button navbar-calculate">
-																<div class="row">
-																		<div class="col-lg-12">
-																				<p>
-																						<a href="#" class="btn btn-warning btn-block">Recalculate</a>
-																				</p>
-																		</div>
-																</div>
-														</div>
-												</li>
+											<li class="row">
+												<label for="threshold" class="col-sm-12">Debug slider</label>
+												<div id="slipslide" class="col-sm-10"></div>
+											</li>
+											<li class="divider"></li>
+											<li class="row">
+												<label for="threshold" class="col-sm-12">Threshold</label>
+												<div id="threshold-slider" class="col-sm-10"></div>
+												<input type="text" class="form-control col-sm-2"  onchange="update_all()" id="threshold" placeholder="1 - 255" value="30" style="width:45px;" readonly/>
+											</li>
+											<li class="row">
+												<label for="ratio">Ratio</label>
+												<input type="text" class="form-control"  onchange="update_all()" id="ratio" placeholder="recommend 2 or 3" value="3"/>
+											</li>
+											<li class="row">
+												<label class="col-sm-12" for="kernel-size">Kernel Size</label>
+												<div class="col-sm-6" id="kernel-slider" style="width: 80px;"></div>
+												<input type="text" class="form-control col-sm-6"  onchange="update_all()" id="kernel-size" placeholder="1 - 7 please" value="3" style="width:80px;" readonly/>
+											</li>
+											<li class="divider"></li>
+											<li class="row">
+												<label for="min-slope">Minimum Slope</label>
+												<input type="text" class="form-control"  onchange="update_all()" id="min-slope" value="1.0"/>
+											</li>
+											<li class="divider"></li>
+											<li class="row">
+												<div class="col-md-3 checkbox">
+													<label>
+														<input type="checkbox" onchange="update_all()" id="step1" checked>step1
+													</label>
+												</div>
+												<div class="col-md-3 checkbox">
+													<label>
+														<input type="checkbox" onchange="update_all()" id="step2" checked>step2
+													</label>
+												</div>
+												<div class="col-md-3 checkbox">
+													<label>
+														<input type="checkbox" onchange="update_all()" id="step3" checked>step3
+													</label>
+												</div>
+											</li>
+											<li class="divider"></li>
+											<li class="row">
+												<div class="checkbox">
+													<label>
+														<input type="checkbox" onchange="update_all()" id="use-mask">Show Outlines
+													</label>
+												</div>
+											</li>
+											<li>
+													<div class="navbar-button navbar-calculate">
+															<div class="row">
+																	<div class="col-lg-12">
+																			<p>
+																					<a href="#" class="btn btn-warning btn-block" onclick="update_all()">Recalculate</a>
+																			</p>
+																	</div>
+															</div>
+													</div>
+											</li>
 										</ul>
 								</li>
 						</ul>
@@ -75,7 +117,7 @@
 		</div> <!-- End navbar-->
 		<div class="container-fluid"> 
 			<div class="row">
-				<div class="col-md-9">
+				<div class="col-md-7 col-md-offset-1">
 					<div id="viewport">
 						<!-- Load the opencv module-->
 						<embed class="box" id="vitileegocv" width=800 height=600 src="vitileego.nmf" type="application/x-pnacl" onload="moduleInit()"/>
@@ -85,71 +127,17 @@
 						<img id="loaded-image" style="display:none;"/>
 					</div>
 				</div>
-				<div class="col-md-3">
-					<div class="box">
-						<div id="sidestats">
-							<!--<p>Legion count:</p>
-							<p class="big">37</p>
-							<p>Legion coverage:</p>
-							<p class="big">62.45%</p>-->
-							<form role="form">
-								<div class="form-group row">
-									<label for="threshold" class="col-sm-12">Debug slider</label>
-									<div id="slipslide" class="col-sm-10"></div>
-								</div>
-								<div class="form-group row">
-									<label for="threshold" class="col-sm-12">Threshold</label>
-									<div id="threshold-slider" class="col-sm-10"></div>
-									<input type="text" class="form-control col-sm-2"  onchange="update_all()" id="threshold" placeholder="1 - 255" value="30" style="width:45px;" readonly/>
-								</div>
-								<div class="form-group">
-									<label for="ratio">Ratio</label>
-									<input type="text" class="form-control"  onchange="update_all()" id="ratio" placeholder="recommend 2 or 3" value="3"/>
-								</div>
-								<div class="form-group row">
-									<label class="col-sm-12" for="kernel-size">Kernel Size</label>
-									<div class="col-sm-6" id="kernel-slider" style="width: 80px;"></div>
-									<input type="text" class="form-control col-sm-6"  onchange="update_all()" id="kernel-size" placeholder="1 - 7 please" value="3" style="width:80px;" readonly/>
-								</div>
-								<div class="form-group">
-									<label for="min-slope">Minimum Slope</label>
-									<input type="text" class="form-control"  onchange="update_all()" id="min-slope" value="1.0"/>
-								</div>
-								<div class="row">
-									<div class="col-md-3 checkbox">
-										<label>
-											<input type="checkbox" onchange="update_all()" id="step1" checked>step1
-										</label>
-									</div>
-									<div class="col-md-3 checkbox">
-										<label>
-											<input type="checkbox" onchange="update_all()" id="step2" checked>step2
-										</label>
-									</div>
-									<div class="col-md-3 checkbox">
-										<label>
-											<input type="checkbox" onchange="update_all()" id="step3" checked>step3
-										</label>
-									</div>
-								</div>
-								<div class="checkbox">
-									<label>
-										<input type="checkbox" onchange="update_all()" id="use-mask">Show Outlines
-									</label>
-								</div>
-							</form>
-						</div>
-					</div>
+				<div class="col-md-4">
+					<h2 class="box-header">Stats</h2>
+					<h2 class="box-header">Past Files</h2>
 				</div>
-			</div>
-			<div class="row">
 			</div>
 		</div>
 		
 	<!--Hey Simon, I'm opting us in to tooltips ... they look cooler-->	
 	<script type="text/javascript">
 			$(function () {
-					$(".dropdown").tooltip({});
+					$(".dropdown-toggle").tooltip({});
 					$("#files")[0].addEventListener("change",loadPicture,false);
 			});
 	</script>

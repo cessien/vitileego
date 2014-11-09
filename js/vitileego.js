@@ -47,7 +47,7 @@ function update_all(){
 	};
 	console.log(data);
 	VitileegoModule.postMessage(data);
-	setTimeout(function(){active = false;},1);
+	setTimeout(function(){active = false;},500);
 }
 
 function addPicture(file, picture) {
